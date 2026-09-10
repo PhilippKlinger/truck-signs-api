@@ -21,12 +21,11 @@ services:
     environment:
       MODE: prod
       DEBUG_ENABLED: "False"
-      DB_HOST: db
-      DB_PORT: "5432"
+      DB_HOST: ${DB_HOST:-db}
+      DB_PORT: "${DB_PORT:-5432}"
     ports:
       - "8020:8000"
     volumes:
-      - staticfiles_data:/app/src/staticfiles
       - mediafiles_data:/app/src/mediafiles
     depends_on:
       db:
@@ -34,5 +33,4 @@ services:
 
 volumes:
   postgres_data:
-  staticfiles_data:
   mediafiles_data:
