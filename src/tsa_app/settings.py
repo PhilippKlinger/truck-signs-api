@@ -17,6 +17,8 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s - %(filename)s:%(funcName)s:%(lineno)d",  # noqa E501
     datefmt="%Y-%m-%d_%H-%M-%S",
 )
+logger.setLevel(level="INFO")
+
 # path: truck-signs-api/src = root of project tsa_app
 BASE_DIR = Path(__file__).resolve().parent.parent
 # path: truck-signs-api = root of project truck-signs-api
@@ -26,27 +28,7 @@ TEMPLATES_DIR = BASE_DIR / "templates"
 # load environment variables from .env file
 has_env_vars_configuration = load_dotenv(ROOT_BASE_DIR / ".env")
 if not has_env_vars_configuration:
-    logger.info("No .env file loaded; using process environment variables.")
-
-
-def env_bool(name: str, default: bool = False) -> bool:
-    """Read a boolean environment variable with strict validation."""
-    value = os.getenv(name)
-    if value is None:
-        return default
-
-    normalized_value = value.strip().lower()
-    if normalized_value in {"true", "1", "yes"}:
-        return True
-    if normalized_value in {"false", "0", "no"}:
-        return False
-    raise ImproperlyConfigured(f"{name} must be a boolean value.")
-
-
-def env_list(name: str, default: str = "") -> list[str]:
-    """Read a comma-separated environment variable into a clean list."""
-    value = os.getenv(name, default)
-    return [item.strip() for item in value.split(",") if item.strip()]
+    logger.warning("could not find .env file, make sure env variables are set as required")
 
 
 def required_env(name: str) -> str:
@@ -57,12 +39,17 @@ def required_env(name: str) -> str:
     return value
 
 
-# Read runtime configuration from the environment.
+# read configuration from environment, set secure defaults where possible
+# adjust django settings depending on environment configuration
 MODE = os.getenv("MODE", "prod").strip().lower()
 if MODE not in {"dev", "prod"}:
     raise ImproperlyConfigured("MODE must be either 'dev' or 'prod'.")
 
-DEBUG = env_bool("DEBUG_ENABLED", False)
+debug_value = os.getenv("DEBUG_ENABLED", "False").strip().lower()
+if debug_value not in {"true", "false"}:
+    raise ImproperlyConfigured("DEBUG_ENABLED must be either 'True' or 'False'.")
+DEBUG = debug_value == "true"
+
 if MODE == "prod" and DEBUG:
     raise ImproperlyConfigured("DEBUG_ENABLED must be False in production mode.")
 
@@ -73,7 +60,7 @@ SECRET_KEY = required_env("SECRET_KEY")
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", "localhost,127.0.0.1")
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
 INSTALLED_APPS = [
     "django.contrib.auth",
@@ -120,7 +107,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "tsa_app.wsgi.application"
 
-db_engine = "django.db.backends.postgresql" if MODE == "prod" else "django.db.backends.sqlite3"
+db_engine = "django.db.backends.sqlite3" if MODE != "prod" else "django.db.backends.postgresql"  # noqa E501
 
 pg_config = {
     "ENGINE": db_engine,
@@ -176,12 +163,15 @@ STORAGES = {
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "mediafiles/")
 
-CORS_ALLOWED_ORIGINS = env_list("CORS_ALLOWED_ORIGINS", "http://localhost:3000")
+CORS_ALLOWED_ORIGINS = os.getenv(
+    "CORS_ALLOWED_ORIGINS",
+    "http://localhost:3000",
+).split(",")
 
-EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend")
-EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.gmail.com")
-EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
-EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_USE_TLS = True
+EMAIL_PORT = 587
 EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
 
@@ -192,5 +182,24 @@ CLOUDINARY_STORAGE = {
 }
 
 # Only use Cloudinary in production if configured
-if CLOUDINARY_STORAGE["CLOUD_NAME"]:
+if os.getenv("CLOUD_NAME", ""):
     DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
+
+# Debugging output of settings
+if MODE != "prod" or DEBUG is True:
+    logger.debug("dumping settings for debugging/development purposes:")
+    print("")
+    print(f"[{"---" * 20} \t\tSTART SETTINGS DEBUG INFO \t{"---" * 20}]")
+    print("")
+    print(f"[ROOT BASE DIR]: \t\t{ROOT_BASE_DIR}")
+    print(f"[BASE DIR]: \t\t\t{BASE_DIR}")
+    print(f"[TEMPLATE DIR]: \t\t{TEMPLATES_DIR}")
+    print(f"[MODE]: \t\t\t{MODE}")
+    print(f"[DEBUG MODE ENABLED]: \t\t{DEBUG}")
+    print(f"[ALLOWED HOSTS]: \t\t{ALLOWED_HOSTS}")
+    print("[DB CONFIG]:")
+    for key, value in DATABASES["default"].items():
+        print(f"  {key}: \t\t\t{value}")
+    print("")
+    print(f"[{"---" * 20} \t\tEND SETTINGS DEBUG INFO \t{"---" * 20}]")
+    print("")
