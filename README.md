@@ -2,7 +2,7 @@
 
 # Signs for Trucks
 
-![Python version](https://img.shields.io/badge/Python-3.12.0-4c566a?logo=python&&longCache=true&logoColor=white&colorB=pink&style=flat-square&colorA=4c566a) ![Django version](https://img.shields.io/badge/Django-5.2.8-4c566a?logo=django&&longCache=truelogoColor=white&colorB=pink&style=flat-square&colorA=4c566a) ![Django-RestFramework](https://img.shields.io/badge/Django_Rest_Framework-3.16.1-red.svg?longCache=true&style=flat-square&logo=django&logoColor=white&colorA=4c566a&colorB=pink)
+![Python version](https://img.shields.io/badge/Python-3.12.x-4c566a?logo=python&&longCache=true&logoColor=white&colorB=pink&style=flat-square&colorA=4c566a) ![Django version](https://img.shields.io/badge/Django-5.2.8-4c566a?logo=django&&longCache=truelogoColor=white&colorB=pink&style=flat-square&colorA=4c566a) ![Django-RestFramework](https://img.shields.io/badge/Django_Rest_Framework-3.16.1-red.svg?longCache=true&style=flat-square&logo=django&logoColor=white&colorA=4c566a&colorB=pink)
 
 ![Truck Signs](./src/screenshots/Truck_Signs_logo.png)
 
@@ -13,72 +13,83 @@ The store also allows clients to upload their own designs and to customize them 
 
 ## Table of Contents
 
-- [Signs for Trucks](#signs-for-trucks)
-  - [Table of Contents](#table-of-contents)
-  - [Prerequisites](#prerequisites)
-  - [Quickstart](#quickstart)
-  - [Usage](#usage)
-    - [Settings](#settings)
-    - [Models](#models)
-    - [Brief Explanation of the Views](#brief-explanation-of-the-views)
-    - [Installation](#installation)
-  - [Screenshots of the Django Backend Admin Panel](#screenshots-of-the-django-backend-admin-panel)
-    - [Mobile View](#mobile-view)
-    - [Desktop View](#desktop-view)
-  - [Additional Information](#additional-information)
-    - [Postgresql Database](#postgresql-database)
-    - [Docker](#docker)
-    - [Django and DRF](#django-and-drf)
-    - [Miscellaneous](#miscellaneous)
+- [Prerequisites](#prerequisites)
+- [Quickstart](#quickstart)
+  - [How to Build the Image](#how-to-build-the-image)
+- [Usage](#usage)
+  - [Settings](#settings)
+  - [Control Application Settings via Env-Variables](#control-application-settings-via-env-variables)
+  - [Common Commands](#common-commands)
+  - [Running with docker run](#running-with-docker-run)
+  - [Persistence and Restarts](#persistence-and-restarts)
+  - [Models](#models)
+  - [Brief Explanation of the Views](#brief-explanation-of-the-views)
+- [CI Workflows](#ci-workflows)
+- [Changes and Verification](#changes-and-verification)
+- [Repository Contents](#repository-contents)
+- [Screenshots of the Django Backend Admin Panel](#screenshots-of-the-django-backend-admin-panel)
+  - [Mobile View](#mobile-view)
+  - [Desktop View](#desktop-view)
+- [Additional Information](#additional-information)
+  - [Postgresql Database](#postgresql-database)
+  - [Docker](#docker)
+  - [Django and DRF](#django-and-drf)
+  - [Miscellaneous](#miscellaneous)
 
 ## Prerequisites
 
-* [Python 3.12.0](https://www.python.org/downloads/release/python-3120/)
 * [Git](https://git-scm.com/install/)
+* Docker Engine or Docker Desktop with Docker Compose v2
 
 ## Quickstart
 
-1. Clone the repo:
+1. Clone the repository:
+
+    ```bash
+    git clone <repository-url> truck-signs-api
+    cd truck-signs-api
+    ```
+
+2. Create the runtime configuration:
+
+    ```bash
+    cp .env.example .env
+    ```
+
+3. Replace every required blank value in `.env`. Use unique values for
+   `SECRET_KEY`, `DB_USER`, `DB_PASSWORD`, and all
+   `DJANGO_SUPERUSER_*` variables.
+
+4. Build and start the application:
+
+    ```bash
+    docker build -t truck-signs-api:local .
+    docker compose config --quiet
+    docker compose up -d
+    docker compose ps
+    ```
+
+The application is available at:
+
+- `http://localhost:8020/`
+- `http://localhost:8020/admin/`
+- `http://localhost:8020/truck-signs/products/`
+
+### How to Build the Image
+
+Build the default local image:
+
 ```bash
-git clone git@github.com:Developer-Akademie-DevSecOpsKurs/truck-signs-api.git
-cd truck-signs-api
+docker build -t truck-signs-api:local .
 ```
 
-2. Copy the content of the example.env file into a .env file:
-```bash
-cp example.env .env
+To use another image, set its complete reference in `.env`:
+
+```dotenv
+BACKEND_IMAGE=ghcr.io/<owner>/<repository>:<tag>
 ```
 
-3. Create virtual environment:
-```bash
-python -m venv <venv_name>
-```
-
-4. Activate virtual environment:
-```bash
-source <venv_name>/scripts/activate
-```
-
-5. Install requirements:
-```bash
-pip install -r requirements.txt
-```
-
-6. Migrate database:
-```bash
-python src/manage.py makemigrations
-python src/manage.py migrate
-```
-
-7. Collect static files:
-```bash
-python src/manage.py collectstatic
-```
-
-8. Start the Python Development Server:
-```bash
-python src/manage.py runserver
-```
+The Compose file references an image and does not contain a build context.
 
 ## Usage
 
@@ -86,17 +97,75 @@ python src/manage.py runserver
 
 The `settings.py` folder inside the `src/tsa_app` folder contains the different settings configuration for the application.
 
-The `example.env` file in the project root contains an overview about configuration values that can be set for the app.
+The `.env.example` file in the project root contains an overview about configuration values that can be set for the app.
 
 ### Control Application Settings via Env-Variables
 
-You can provide all configuration via a `.env` file in the project root.
-Copy `example.env` to `.env`, fill in the required values (DB, SECRET_KEY, etc.), and keep this file out of version 
-control to avoid leaking secrets.
+Copy `.env.example` to `.env`, replace the required blank values, and keep
+`.env` outside version control.
 
-**Database switch via MODE**
-- `MODE=prod` -> PostgreSQL, using `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT` from `.env`.
-- `MODE` unset or `MODE=dev` -> SQLite at `src/db.sqlite3`; no DB env vars needed.
+| Variable | Default or requirement | Purpose |
+| --- | --- | --- |
+| `MODE` | Compose enforces `prod` | Uses PostgreSQL in the container stack. |
+| `DEBUG_ENABLED` | Compose enforces `False` | Disables Django debug mode. |
+| `LOG_LEVEL` | `ERROR` | Application log level. |
+| `SECRET_KEY` | Required | Django signing key. |
+| `ALLOWED_HOSTS` | `localhost,127.0.0.1` | Comma-separated hosts accepted by Django. |
+| `CORS_ALLOWED_ORIGINS` | `http://localhost:3000` | Comma-separated browser origins accepted by Django. |
+| `BACKEND_IMAGE` | `truck-signs-api:local` | Backend image used by Compose. |
+| `DB_NAME` | `trucksigns_db` | PostgreSQL database name. |
+| `DB_USER` | Required | PostgreSQL account name. |
+| `DB_PASSWORD` | Required | PostgreSQL account password. |
+| `DB_HOST` | `db` | PostgreSQL hostname; `db` is the Compose service name. |
+| `DB_PORT` | `5432` | PostgreSQL port inside the Compose network. |
+| `DJANGO_SUPERUSER_USERNAME` | Required | Initial Django administrator name. |
+| `DJANGO_SUPERUSER_EMAIL` | Required | Initial Django administrator email address. |
+| `DJANGO_SUPERUSER_PASSWORD` | Required | Initial Django administrator password. |
+
+Keep the `DB_HOST` and `DB_PORT` defaults for the supplied Compose stack.
+Add the deployment hostname to `ALLOWED_HOSTS` only in the untracked `.env`.
+
+### Common Commands
+
+```bash
+docker compose up -d
+docker compose ps
+docker compose logs --tail 100
+docker compose logs -f backend
+docker compose restart
+docker compose down
+```
+
+The entrypoint waits for PostgreSQL, runs migrations and `collectstatic`,
+creates the configured superuser if it does not exist, and starts Gunicorn.
+
+### Running with docker run
+
+Docker Compose is the intended way to run the complete stack. To run only the
+backend against PostgreSQL on an existing Docker network:
+
+```bash
+docker run --rm \
+  --name truck-signs-api \
+  --network <existing-docker-network> \
+  --env-file .env \
+  --env DB_HOST=<postgres-hostname-on-that-network> \
+  --publish 8020:8000 \
+  truck-signs-api:local
+```
+
+Do not put real credentials directly into shared commands.
+
+### Persistence and Restarts
+
+PostgreSQL data is stored in the named volume `postgres_data`. Uploaded media
+uses `mediafiles_data`. A normal `docker compose down` keeps both volumes.
+Static files are regenerated by `collectstatic` when the backend starts.
+
+> [!WARNING]
+> `docker compose down -v` deletes the database and media volumes.
+
+Both services use `restart: unless-stopped`.
 
 ### Models
 
@@ -112,65 +181,59 @@ Most of the views are CBV imported from _rest_framework.generics_, and they allo
 
 The behavior of some of the views had to be modified to address functionalities such as creation of order and payment, as in this case, for example, both functionalities are implemented in the same view, and so a _GenericAPIView_ was the view from which it inherits. Another example of this is the _UploadCustomerImage_ View that takes the vinyl template uploaded by the clients and creates a new product based on it.
 
-### Installation
+## CI Workflows
 
-1. Clone the repo:
-    ```bash
-    git clone <INSERT URL>
-    cd truck-signs-api
-    ```
-1. Configure a virtual env
-    ```bash
-    python -m venv venv
-    venv\Scripts\activate
-    ```
-1. Configure the environment variables.
-    1. Copy the content of the `example.env` file that is on projects root level into a `.env` file:
-        ```bash
-        cp example.env .env
-        ```
-    2. The new `.env` file should contain all the environment variables necessary to run all the django app in all the environments. However, the only needed variables for the development environment to run are the following:
-        ```bash
-        SECRET_KEY
-        DB_NAME
-        DB_USER
-        DB_PASSWORD
-        DB_HOST
-        DB_PORT
-        EMAIL_HOST_USER
-        EMAIL_HOST_PASSWORD
-        ```
-    3. For the `postgres` database, the default configuration should be:
-        ```bash
-        DB_NAME=trucksigns_db
-        DB_USER=trucksigns_user
-        DB_PASSWORD=supertrucksignsuser!
-        DB_HOST=localhost
-        DB_PORT=5432
-        ```
-    4. The SECRET_KEY is the django secret key. To generate a new one see: [Stackoverflow Link](https://stackoverflow.com/questions/41298963/is-there-a-function-for-generating-settings-secret-key-in-django)
+| Workflow | Trigger | Purpose |
+| --- | --- | --- |
+| `build.yaml` | Version-tag push or manual dispatch | Builds the image and pushes `latest` and the current Git ref name to GHCR. |
+| `test.yaml` | Relevant push or pull request targeting `main` | Runs Flake8, Black, isort, and the Django tests with Python 3.12. |
+| `check-open-pr.yaml` | Push to a non-`main` branch or opening a pull request | Checks that the branch has an open pull request. |
 
-    5. The `EMAIL_HOST_USER` and the `EMAIL_HOST_PASSWORD` are the credentials to send emails from the website when a client makes a purchase. This is currently disable, but the code to activate this can be found in views.py in the create order view as comments. Therefore, any valid email and password will work.
-1. Run the migrations:
-    ```bash
-    python src/manage.py makemigrations
-    python src/manage.py migrate
-    ```
-1. Collect static files:
-    ```bash
-    python src/manage.py collectstatic
-    ```
-1. Run the app:
-    ```bash
-    python src/manage.py runserver
-    ```
-1. (Optional step) To create a super user run:
-    ```bash
-    python src/manage.py createsuperuser
-    ```
-1. (Optional step) Set up the database. [Django database setup example](https://www.digitalocean.com/community/tutorials/how-to-set-up-django-with-postgres-nginx-and-gunicorn-on-ubuntu-16-04).
+The workflows do not deploy the application to a server.
 
-Congratulations =) !!! The App should be running in [localhost:8000](http://localhost:8000)
+## Changes and Verification
+
+The container setup was repaired as follows:
+
+- corrected the Python image and pinned PostgreSQL 17 by tag and digest;
+- corrected dependency installation, `EXPOSE`, and the entrypoint path and permissions;
+- replaced the Compose build context with an image reference;
+- removed the PostgreSQL host port and host bind mounts;
+- added restart policies, health checking, named persistence, and backend port `8020`;
+- added database waiting with `sleep`, migrations, `collectstatic`, idempotent superuser creation, and one Gunicorn start;
+- removed insecure Django credential fallbacks.
+
+Verification completed:
+
+- local image build succeeded;
+- Compose configuration validation succeeded;
+- PostgreSQL became healthy without a published host port;
+- the backend returned HTTP `200` on port `8020`;
+- `manage.py check` passed and all 28 Django tests succeeded;
+- database and superuser data survived stack recreation;
+- Gunicorn ran once as PID 1.
+
+## Repository Contents
+
+| Path | Purpose |
+| --- | --- |
+| `README.md` | Project setup, usage, configuration, and verification. |
+| `Dockerfile` | Backend image definition. |
+| `docker-compose.yml` | Backend and PostgreSQL runtime configuration. |
+| `entrypoint.sh` | Django initialization and Gunicorn startup. |
+| `.env.example` | Template for the untracked runtime configuration. |
+| `.dockerignore` | Files excluded from the image build context. |
+| `.gitignore` | Files excluded from Git. |
+| `.github/workflows/` | Build, test, and pull-request workflows. |
+| `requirements.txt` | Python dependencies. |
+| `pyproject.toml` | Black, isort, and Flake8 configuration. |
+| `Procfile` | Legacy process declaration; not used by Compose. |
+| `docs/testing.md` | Existing Python quality-check documentation. |
+| `src/manage.py` | Django management command entrypoint. |
+| `src/tsa_app/` | Django settings, URLs, and WSGI module. |
+| `src/tsa_products/` | Models, serializers, views, migrations, and tests. |
+| `src/templates/` | Application and admin templates. |
+| `src/screenshots/` | Images used by this README. |
 
 > [!NOTE]
 > To create Truck vinyls with Truck logos in them, first create the __Category__ Truck Sign,

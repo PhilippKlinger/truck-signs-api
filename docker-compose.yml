@@ -1,48 +1,46 @@
 services:
   db:
-    image: postgres:7-alpine
-    container_name: tsa_db
-    env_file: .env
+    image: postgres:17-alpine@sha256:18cfe3ef5e6815560c98237d6216d1e5119702fb0f3894c8785dd58b8bbe5d73
+    restart: unless-stopped
     networks:
       - tsa-network
+    # Pass the database settings with the names PostgreSQL expects.
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - '5432:5432'
     healthcheck:
-      test:
-        [
-          'CMD-SHELL',
-          'pg_isready -U ${DB_USER} -d ${DB_NAME}',
-        ]
+      # Use $$ so these variables are read inside the database container.
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
 
   backend:
-    build: .
-    container_name: tsa_backend
-    command: gunicorn tsa_app.wsgi:application --bind 0.0.0.0:8000 --workers 4
+    image: ${BACKEND_IMAGE:-truck-signs-api:local}
+    restart: unless-stopped
     networks:
       - tsa-network
+    env_file: .env
+    # Run Django in production mode and allow a custom database endpoint.
     environment:
       MODE: prod
-      DEBUG_ENABLED: 'False'
-      DB_NAME: trucksigns_db
-      DB_USER: trucksigns_user
-      DB_PASSWORD: supertrucksignsuser!
-      DB_HOST: tsa_db
-      DB_PORT: 5432
-      ALLOWED_HOSTS: localhost,127.0.0.1,tsa-web
+      DEBUG_ENABLED: "False"
+      DB_HOST: ${DB_HOST:-db}
+      DB_PORT: "${DB_PORT:-5432}"
+    ports:
+      - "8020:8000"
     volumes:
-      - ./src/staticfiles:/app/src/staticfiles
-      - ./src/media:/app/src/media
+      - mediafiles_data:/app/src/mediafiles
     depends_on:
       db:
         condition: service_healthy
 
 volumes:
   postgres_data:
+  mediafiles_data:
 
 networks:
   tsa-network:
