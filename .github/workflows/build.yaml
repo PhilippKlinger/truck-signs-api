@@ -14,11 +14,13 @@ jobs:
   build_and_push:
     runs-on: ubuntu-latest
     steps:
+      # Pin actions to exact commits; comments show their readable versions.
       - name: Checkout Repository
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
       - name: Prepare Image Name
         id: image
+        # `,,` makes the repository lowercase; GITHUB_OUTPUT saves it for later steps.
         run: echo "name=ghcr.io/${GITHUB_REPOSITORY,,}" >> "${GITHUB_OUTPUT}"
     
       - name: Login to GitHub Container Registry

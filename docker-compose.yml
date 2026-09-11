@@ -4,6 +4,7 @@ services:
     restart: unless-stopped
     networks:
       - tsa-network
+    # Pass the database settings with the names PostgreSQL expects.
     environment:
       POSTGRES_DB: ${DB_NAME}
       POSTGRES_USER: ${DB_USER}
@@ -11,6 +12,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
+      # Use $$ so these variables are read inside the database container.
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
@@ -22,6 +24,7 @@ services:
     networks:
       - tsa-network
     env_file: .env
+    # Run Django in production mode and allow a custom database endpoint.
     environment:
       MODE: prod
       DEBUG_ENABLED: "False"

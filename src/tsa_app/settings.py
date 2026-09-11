@@ -42,6 +42,7 @@ def required_env(name: str) -> str:
 # read configuration from environment, set secure defaults where possible
 # adjust django settings depending on environment configuration
 MODE = os.getenv("MODE", "prod").strip().lower()
+# Only dev and prod are supported.
 if MODE not in {"dev", "prod"}:
     raise ImproperlyConfigured("MODE must be either 'dev' or 'prod'.")
 
@@ -50,6 +51,7 @@ if debug_value not in {"true", "false"}:
     raise ImproperlyConfigured("DEBUG_ENABLED must be either 'True' or 'False'.")
 DEBUG = debug_value == "true"
 
+# Do not allow debug mode in production.
 if MODE == "prod" and DEBUG:
     raise ImproperlyConfigured("DEBUG_ENABLED must be False in production mode.")
 
