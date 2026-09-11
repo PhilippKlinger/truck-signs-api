@@ -28,7 +28,7 @@ TEMPLATES_DIR = BASE_DIR / "templates"
 # load environment variables from .env file
 has_env_vars_configuration = load_dotenv(ROOT_BASE_DIR / ".env")
 if not has_env_vars_configuration:
-    logger.warning("could not find .env file, make sure env variables are set as required")
+    logger.info("No .env file loaded; using process environment variables.")
 
 
 def required_env(name: str) -> str:
