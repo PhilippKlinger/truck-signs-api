@@ -24,12 +24,10 @@ services:
     networks:
       - tsa-network
     env_file: .env
-    # Run Django in production mode and allow a custom database endpoint.
+    # Enforce production mode for the Compose stack.
     environment:
       MODE: prod
       DEBUG_ENABLED: "False"
-      DB_HOST: ${DB_HOST:-db}
-      DB_PORT: "${DB_PORT:-5432}"
     ports:
       - "8020:8000"
     volumes:

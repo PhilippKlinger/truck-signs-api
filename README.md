@@ -46,7 +46,7 @@ The store also allows clients to upload their own designs and to customize them 
 1. Clone the repository:
 
     ```bash
-    git clone <repository-url> truck-signs-api
+    git clone https://github.com/PhilippKlinger/truck-signs-api.git
     cd truck-signs-api
     ```
 
@@ -56,9 +56,10 @@ The store also allows clients to upload their own designs and to customize them 
     cp .env.example .env
     ```
 
-3. Replace every required blank value in `.env`. Use unique values for
-   `SECRET_KEY`, `DB_USER`, `DB_PASSWORD`, and all
-   `DJANGO_SUPERUSER_*` variables.
+3. The provided credentials are suitable only for a local demo. Before using
+   the stack in a shared or internet-accessible environment, replace
+   `SECRET_KEY`, `DB_USER`, `DB_PASSWORD`, and all `DJANGO_SUPERUSER_*`
+   values with unique, secure values.
 
 4. Build and start the application:
 
@@ -101,26 +102,27 @@ The `.env.example` file in the project root contains an overview about configura
 
 ### Control Application Settings via Env-Variables
 
-Copy `.env.example` to `.env`, replace the required blank values, and keep
-`.env` outside version control.
+Copy `.env.example` to `.env` and keep `.env` outside version control. The
+included credentials make local evaluation easier but must be replaced before
+the application is deployed or exposed to other users.
 
 | Variable | Default or requirement | Purpose |
 | --- | --- | --- |
 | `MODE` | Compose enforces `prod` | Uses PostgreSQL in the container stack. |
 | `DEBUG_ENABLED` | Compose enforces `False` | Disables Django debug mode. |
 | `LOG_LEVEL` | `ERROR` | Application log level. |
-| `SECRET_KEY` | Required | Django signing key. |
+| `SECRET_KEY` | Demo value; replace before deployment | Django signing key. |
 | `ALLOWED_HOSTS` | `localhost,127.0.0.1` | Comma-separated hosts accepted by Django. |
 | `CORS_ALLOWED_ORIGINS` | `http://localhost:3000` | Comma-separated browser origins accepted by Django. |
 | `BACKEND_IMAGE` | `truck-signs-api:local` | Backend image used by Compose. |
 | `DB_NAME` | `trucksigns_db` | PostgreSQL database name. |
-| `DB_USER` | Required | PostgreSQL account name. |
-| `DB_PASSWORD` | Required | PostgreSQL account password. |
+| `DB_USER` | Demo value; replace before deployment | PostgreSQL account name. |
+| `DB_PASSWORD` | Demo value; replace before deployment | PostgreSQL account password. |
 | `DB_HOST` | `db` | PostgreSQL hostname; `db` is the Compose service name. |
 | `DB_PORT` | `5432` | PostgreSQL port inside the Compose network. |
-| `DJANGO_SUPERUSER_USERNAME` | Required | Initial Django administrator name. |
-| `DJANGO_SUPERUSER_EMAIL` | Required | Initial Django administrator email address. |
-| `DJANGO_SUPERUSER_PASSWORD` | Required | Initial Django administrator password. |
+| `DJANGO_SUPERUSER_USERNAME` | Demo value; replace before deployment | Initial Django administrator name. |
+| `DJANGO_SUPERUSER_EMAIL` | Demo value; replace before deployment | Initial Django administrator email address. |
+| `DJANGO_SUPERUSER_PASSWORD` | Demo value; replace before deployment | Initial Django administrator password. |
 
 Keep the `DB_HOST` and `DB_PORT` defaults for the supplied Compose stack.
 Add the deployment hostname to `ALLOWED_HOSTS` only in the untracked `.env`.
