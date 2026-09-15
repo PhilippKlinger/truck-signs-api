@@ -6,6 +6,7 @@ import logging
 import os
 from pathlib import Path
 
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
 # Configure Django logging
@@ -27,34 +28,37 @@ TEMPLATES_DIR = BASE_DIR / "templates"
 # load environment variables from .env file
 has_env_vars_configuration = load_dotenv(ROOT_BASE_DIR / ".env")
 if not has_env_vars_configuration:
-    logger.warning("could not find .env file, make sure env variables are set as required")
+    logger.info("No .env file loaded; using process environment variables.")
+
+
+def required_env(name: str) -> str:
+    """Return a required environment value or fail with a clear message."""
+    value = os.getenv(name, "").strip()
+    if not value:
+        raise ImproperlyConfigured(f"Required environment variable {name} is missing.")
+    return value
+
 
 # read configuration from environment, set secure defaults where possible
 # adjust django settings depending on environment configuration
-LOG_LEVEL = os.getenv("LOG_LEVEL", "ERROR")
+MODE = os.getenv("MODE", "prod").strip().lower()
+# Only dev and prod are supported.
+if MODE not in {"dev", "prod"}:
+    raise ImproperlyConfigured("MODE must be either 'dev' or 'prod'.")
 
-MODE = os.getenv("MODE")
-DEBUG = os.getenv("DEBUG_ENABLED", "False") == "True"
+debug_value = os.getenv("DEBUG_ENABLED", "False").strip().lower()
+if debug_value not in {"true", "false"}:
+    raise ImproperlyConfigured("DEBUG_ENABLED must be either 'True' or 'False'.")
+DEBUG = debug_value == "true"
 
-if DEBUG is True and MODE != "":
-    logger.info("could not detect MODE variable, setting to 'dev'")
-    MODE = "dev"
-elif not MODE or MODE == "":
-    logger.info("could not detect MODE variable, setting to 'prod'")
-    MODE = "prod"
+# Do not allow debug mode in production.
+if MODE == "prod" and DEBUG:
+    raise ImproperlyConfigured("DEBUG_ENABLED must be False in production mode.")
 
-if MODE == "prod":
-    logger.info("running in production mode, ensure 'DEBUG' is disabled")
-    DEBUG = False
-    logger.setLevel(level=LOG_LEVEL)
-else:
-    # dev mode
-    logger.info("running in development mode, enabling 'DEBUG'")
-    DEBUG = True
-    LOG_LEVEL = "DEBUG"
-    logger.setLevel(level=LOG_LEVEL)
+LOG_LEVEL = os.getenv("LOG_LEVEL", "DEBUG" if DEBUG else "ERROR").strip().upper()
+logger.setLevel(level=LOG_LEVEL)
 
-SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-change-me-in-production")
+SECRET_KEY = required_env("SECRET_KEY")
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
@@ -110,9 +114,9 @@ db_engine = "django.db.backends.sqlite3" if MODE != "prod" else "django.db.backe
 pg_config = {
     "ENGINE": db_engine,
     "NAME": os.getenv("DB_NAME", "trucksigns_db"),
-    "USER": os.getenv("DB_USER", "trucksigns_user"),
-    "PASSWORD": os.getenv("DB_PASSWORD", "supertrucksignsuser!"),
-    "HOST": os.getenv("DB_HOST", "localhost"),
+    "USER": required_env("DB_USER") if MODE == "prod" else os.getenv("DB_USER", ""),
+    "PASSWORD": (required_env("DB_PASSWORD") if MODE == "prod" else os.getenv("DB_PASSWORD", "")),
+    "HOST": os.getenv("DB_HOST", "db"),
     "PORT": os.getenv("DB_PORT", "5432"),
 }
 
