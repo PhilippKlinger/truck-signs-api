@@ -189,6 +189,7 @@ The behavior of some of the views had to be modified to address functionalities 
 | --- | --- | --- |
 | `build.yaml` | Version-tag push or manual dispatch | Builds the image and pushes `latest` and the current Git ref name to GHCR. |
 | `test.yaml` | Every push or pull request targeting `main` | Runs Flake8, Black, isort, and the Django tests with Python 3.12. |
+| `security.yaml` | Every push or pull request targeting `main` | Scans the Git history for secrets (gitleaks), audits Python dependencies (pip-audit), and builds the image to scan it for fixable critical or high vulnerabilities (Trivy). |
 | `check-open-pr.yaml` | Push to a non-`main` branch or opening a pull request | Checks that the branch has an open pull request. |
 
 The workflows do not deploy the application to a server.
