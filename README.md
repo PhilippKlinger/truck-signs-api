@@ -227,7 +227,8 @@ Verification completed:
 | `.env.example` | Template for the untracked runtime configuration. |
 | `.dockerignore` | Files excluded from the image build context. |
 | `.gitignore` | Files excluded from Git. |
-| `.github/workflows/` | Build, test, and pull-request workflows. |
+| `.github/dependabot.yml` | Weekly dependency updates for Python packages, GitHub Actions, and the Docker base image. |
+| `.github/workflows/` | Build, test, security, and pull-request workflows. |
 | `requirements.txt` | Python dependencies. |
 | `pyproject.toml` | Black, isort, and Flake8 configuration. |
 | `Procfile` | Legacy process declaration; not used by Compose. |
