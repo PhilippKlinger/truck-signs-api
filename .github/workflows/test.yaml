@@ -3,14 +3,8 @@ name: Lint and Test Python Code Base
 on:
     push:
         branches: ["main"]
-        paths:
-            - "**/*.py"
-            - "requirements.txt"
     pull_request:
         branches: ["main"]
-        paths:
-            - "**/*.py"
-            - "requirements.txt"
 
 permissions:
     contents: read

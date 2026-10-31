@@ -188,7 +188,7 @@ The behavior of some of the views had to be modified to address functionalities 
 | Workflow | Trigger | Purpose |
 | --- | --- | --- |
 | `build.yaml` | Version-tag push or manual dispatch | Builds the image and pushes `latest` and the current Git ref name to GHCR. |
-| `test.yaml` | Relevant push or pull request targeting `main` | Runs Flake8, Black, isort, and the Django tests with Python 3.12. |
+| `test.yaml` | Every push or pull request targeting `main` | Runs Flake8, Black, isort, and the Django tests with Python 3.12. |
 | `check-open-pr.yaml` | Push to a non-`main` branch or opening a pull request | Checks that the branch has an open pull request. |
 
 The workflows do not deploy the application to a server.
