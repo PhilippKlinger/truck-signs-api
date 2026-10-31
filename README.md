@@ -4,6 +4,8 @@
 
 ![Python version](https://img.shields.io/badge/Python-3.12.x-4c566a?logo=python&&longCache=true&logoColor=white&colorB=pink&style=flat-square&colorA=4c566a) ![Django version](https://img.shields.io/badge/Django-5.2.8-4c566a?logo=django&&longCache=truelogoColor=white&colorB=pink&style=flat-square&colorA=4c566a) ![Django-RestFramework](https://img.shields.io/badge/Django_Rest_Framework-3.16.1-red.svg?longCache=true&style=flat-square&logo=django&logoColor=white&colorA=4c566a&colorB=pink)
 
+[![Lint and Test](https://github.com/PhilippKlinger/truck-signs-api/actions/workflows/test.yaml/badge.svg?branch=main)](https://github.com/PhilippKlinger/truck-signs-api/actions/workflows/test.yaml) [![Security Checks](https://github.com/PhilippKlinger/truck-signs-api/actions/workflows/security.yaml/badge.svg?branch=main)](https://github.com/PhilippKlinger/truck-signs-api/actions/workflows/security.yaml)
+
 ![Truck Signs](./src/screenshots/Truck_Signs_logo.png)
 
 __Signs for Trucks__ is an online store to buy pre-designed vinyls with custom lines of letters (often call truck letterings).
@@ -24,6 +26,7 @@ The store also allows clients to upload their own designs and to customize them 
   - [Persistence and Restarts](#persistence-and-restarts)
   - [Models](#models)
   - [Brief Explanation of the Views](#brief-explanation-of-the-views)
+- [Architecture](#architecture)
 - [CI Workflows](#ci-workflows)
 - [Changes and Verification](#changes-and-verification)
 - [Repository Contents](#repository-contents)
@@ -183,6 +186,29 @@ Most of the views are CBV imported from _rest_framework.generics_, and they allo
 
 The behavior of some of the views had to be modified to address functionalities such as creation of order and payment, as in this case, for example, both functionalities are implemented in the same view, and so a _GenericAPIView_ was the view from which it inherits. Another example of this is the _UploadCustomerImage_ View that takes the vinyl template uploaded by the clients and creates a new product based on it.
 
+## Architecture
+
+The Compose stack runs two containers on a private bridge network. Only the backend is published on the host.
+
+```mermaid
+flowchart LR
+    client(["API client / browser"])
+    subgraph host["Docker host"]
+        subgraph net["tsa-network"]
+            backend["backend<br/>Django + DRF on Gunicorn<br/>WhiteNoise serves static files"]
+            db[("db<br/>PostgreSQL 17")]
+        end
+        media[("mediafiles_data<br/>volume")]
+        pgdata[("postgres_data<br/>volume")]
+    end
+    client -- "HTTP :8020" --> backend
+    backend -- "SQL :5432" --> db
+    backend --- media
+    db --- pgdata
+```
+
+On start, `entrypoint.sh` checks the required variables, waits for PostgreSQL, runs migrations and `collectstatic`, creates the superuser if it is missing, and starts Gunicorn.
+
 ## CI Workflows
 
 | Workflow | Trigger | Purpose |
@@ -193,6 +219,15 @@ The behavior of some of the views had to be modified to address functionalities 
 | `check-open-pr.yaml` | Push to a non-`main` branch or opening a pull request | Checks that the branch has an open pull request. |
 
 The workflows do not deploy the application to a server.
+
+```mermaid
+flowchart LR
+    pr["Pull request or push to main"] --> lint["Lint<br/>Flake8, Black, isort"] --> test["Django tests"]
+    pr --> secrets["gitleaks<br/>full history"]
+    pr --> audit["pip-audit<br/>requirements.txt"]
+    pr --> scan["Build image<br/>Trivy scan"]
+    tag["Version tag"] --> build["Build image"] --> ghcr[("GHCR<br/>latest + tag")]
+```
 
 ## Changes and Verification
 
